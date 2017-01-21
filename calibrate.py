@@ -10,22 +10,23 @@ def acquire_files():
     """
     acquire_files gathers all the .Spe file in the current file directory and
     returns a list containing all .Spe files.
+    Files is a list of .spe files.
     """
     sample_measurements = []
     dir_path = os.getcwd()
     for file in os.listdir(dir_path):
-        if file.endswith(".Spe"):
+        if file.lower().endswith(".spe"):
             if file == "USS_Independence_Background.Spe":
                 pass
             else:
-                sample_measurements.append(file)
-    return sample_measurements
-
+                return sample_measurements
 
 def peak_offsets(spectrum):
     offset = []
     peak_channel = []
-    energy_list = [351.93, 583.19, 609.31, 911.20, 1120.29, 1460.82, 1764.49,
+    energy_list = [351.93, 583.19, 609.31, 911.20, 1120.29, 1460.82, 1764.49]
+    found_energy = []
+    energy_list = [351.93, 583.19, 609.31, 911.20, 1460.82, 1764.49,
                    2614.51]
     E0 = spectrum.energy_cal[0]
     Eslope = spectrum.energy_cal[1]
@@ -88,6 +89,9 @@ def calibration_check(spectrum):
             fix += 1
             peak_channel.append(channels[i])
             found_energy.append(energy_list[i])
+            if difference > 0.5*fwhm:
+                print(energy_axis[indexes+start_region])
+                fix += 1
     if skip > 4:
         message = 'error'
     elif fix >= 4:
@@ -125,13 +129,12 @@ def calibration_correction(measurement, channel, energy):
     return(cal_file)
 
 
-def main():
-    sample_measurements = acquire_files()
+def recalibrate(files):
     cal_error = []
     double_check = []
 
     for sample in sample_measurements:
-        if '_recal.spe' in sample:
+        if '_recal.spe' in sample.lower():
             double_check.append(sample)
             pass
         else:
@@ -149,7 +152,7 @@ def main():
         Recal = SPEFile.SPEFile(check)
         Recal.read()
         status = calibration_check(Recal)[2]
-        if status == 'Fix':
+        if status == 'fix':
             cal_error.append(check.replace('_recal.Spe', '.Spe'))
     if cal_error == []:
         pass
@@ -157,7 +160,9 @@ def main():
         with open('Error_Cal.txt', 'w') as file:
             file.writelines('Check calibration in %s \n' % error for error in
                             cal_error)
-
+def main(files):
+    sample_measurements = acquire_files()
+    recalibrate(sample_measurements)
 
 if __name__ == '__main__':
     main()
